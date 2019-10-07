@@ -1,0 +1,223 @@
+---
+title: "Assignment 6.1 : Housing"
+author: "Gourav Verma"
+date: "June 27 2019"
+output: 
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+setwd("C:/Users/f4puslg/Desktop/Garv/ML/Term 2 - R/Assignments")
+library(GGally)
+library(ggplot2)
+library(ggm)
+library(QuantPsyc)
+library(car)
+housing <- read.csv("week-6-housing.csv")
+house <- housing[c("Sale_Price", "sq_ft_lot", "square_feet_total_living", "year_built", "building_grade")]
+```
+***
+#### **Que A : Explain why you chose to remove data points from your ‘clean’ dataset.**
+##### **Answer :** I have removed below data points from the dataset.
+Data Point | Reason
+-----------|-------
+Sale Date  |Non Deterministic variable
+sale_reason|Undefined values
+sale_instrument|Undefined values
+sale_warning|Undefined values
+sitetype|Undefined values
+addr_full|Non Deterministic variable
+ctyname|Incomplete data
+postalctyn|Same value for all observations
+lon|Non Deterministic variable
+lan|Non Deterministic variable
+bedrooms|Non Deterministic variable
+bath_full_count|Non Deterministic variable
+bath_half_count|Non Deterministic variable
+bath_3qtr_count|Non Deterministic variable
+year_renovated|Incomplete data
+current_zoning|Undefined values
+prop_type|Same value for all observations
+present_use|Undefined values
+***
+#### **Que B : Create two variables; one that will contain the variables Sale Price and Square Foot of Lot (same variables used from previous assignment on simple regression) and one that will contain Sale Price and several additional predictors of your choice. Explain the basis for your additional predictor selections.**
+##### **Answer :**
+```{r, messgae=FALSE}
+model.1 <- lm(Sale_Price ~ sq_ft_lot, data = house)
+```
+```{r, message=FALSE}
+model.2 <- lm(Sale_Price ~ sq_ft_lot + square_feet_total_living + year_built, data = house)
+```
+  
+##### I had several predictors in mind, like location, bathrooms, bedrooms etc. but, looking into below correlation matrix it seems sale_Price has moderate correlation with square_feet_total_living and year_built.Building grade is also having good correlation with sale_price but, linear model is having r^2^ of only 15.3%
+```{r, echo=FALSE, message=FALSE}
+ggpairs(house, columns = c("Sale_Price", "sq_ft_lot", "square_feet_total_living", "year_built", "building_grade"), 
+        upper = list(continuous = wrap("cor", size = 5)),
+        lower = list(continuous = "smooth"))
+```
+
+*** 
+
+#### **Que C : Execute a summary() function on two variables defined in the previous step to compare the model results. What are the R2 and Adjusted R2 statistics? Explain what these results tell you about the overall model. Did the inclusion of the additional predictors help explain any large variations found in Sale Price?**
+##### **Answer :**
+##### Summary of model.1 is shown below. R^2^ is 0.01435 and Adjusted R^2^ is 0.01428 
+```{r, echo=FALSE}
+summary(model.1)
+```
+---
+##### Summary of model.2 is shown below. R^2^ is 0.22 and Adjusted R^2^ is 0.22 
+```{r, echo=FALSE}
+summary(model.2)
+```
+
+After adding additional variables R^2^ increaed to 22% from 1%. Form the first model Square foot lot is only accounting for 1% variance in Sale Price. After adding Sq feet total living and year built this value increases to .22 or 22% of the variance in sale price. 
+
+***
+
+#### **Que D : Considering the parameters of the multiple regression model you have created. What are the standardized betas for each parameter and what do the values indicate?**
+##### **Answer :** Standardized betas are shown below - 
+
+```{r, echo=FALSE}
+
+lm.beta(model.2)
+
+```
+
++ **Lot Area** (*Standardized beta* = 0.041): This idicates that as Lot area increase by one standard deviation(56933.29 sq. ft), house sale price increases by 0.041 standard deviations. 
+ Standard deviation of Sale Price is $404,381 and so this constitues a change of $16,580 increase in sale price. Therefore for every 56,934 sq. ft increase in lot area, an extra **$16,580 increase** in sale price. 
+
++ **Total Living Area** (*Standardized beta* = 0.40): This idicates that as total living area increase by one standard deviation(989.81 sq. ft), house sale price increases by 0.40 standard deviations. 
+ Standard deviation of Sale Price is $404,381 and so this constitues a change of $161,752 increase in sale price. Therefore for every 989.81 sq. ft increase in living area, an extra **$161,752 increase** in sale price.
+ 
++ **Year Built** (*Standardized beta* = .12): This idicates that as year of build increase by one standard deviation(17 yr), house sale price increases by 0.12 standard deviations. 
+ Standard deviation of Sale Price is $404,381 and so this constitues a change of $48,526 increase in sale price. Therefore in every 17 years, an extra **$48,526 increase** in sale price.
+ 
+***
+
+#### **Que E : Calculate the confidence intervals for the parameters in your model and explain what the results indicate.**
+##### **Answer :** Below confidence interval will contain true value of *b*(Beta) in the dataset. Our model is appropriate since, non of confidence interval of variable crosses 0. In this model, the two best predictors(Lot area & Living area) have very small confidence intervals, indicating that estimates for the current model are likely to be representative of the true population values. The interval of year built is wider(but still does not cross zero), indicating that the parameter for this variable is less representative, but nevertheless significant.
+```{r, echo=FALSE}
+format(confint(model.2), scientific = FALSE)
+```
+
+***
+ 
+#### **Que F : 	Assess the improvement of the new model compared to your original model (simple regression model) by testing whether this change is significant by performing an analysis of variance.**
+##### **Answer :** Below model comparison shows that value of F is `1695.02`. The value in column Pr(>F) is `2.2e-16`(i.e. 2.2 with the decimal place moved 16 places to the left, or very small indeed); we can say that model.2 significantly improved the fit of the model to the data compared to model.1, `F(2,12861) = 1695.02, p < .001`.
+```{r, echo=FALSE}
+anova(model.1, model.2)
+```
+
+***
+#### **Que G : Perform casewise diagnostics to identify outliers and/or influential cases, storing each function's output in a dataframe assigned to a unique variable name.**
+##### **Answer :** Below is the structure of new house table with diagnostics information.
+```{r, echo=FALSE}
+house$resid <- resid(model.2)
+house$stz.r <- rstandard(model.2)
+house$stu.r <- rstudent(model.2)
+house$cooks <- cooks.distance(model.2)
+house$dfbeta <- dfbeta(model.2)
+house$dffit <- dffits(model.2)
+house$leverage <- hatvalues(model.2)
+house$cov.ratio <- covratio(model.2)
+```
+```{r, echo=FALSE}
+str(house)
+```
+
+***
+#### **Que H : Calculate the standardized residuals using the appropriate command, specifying those that are +-2, storing the results of large residuals in a variable you create.**
+##### **Answer :** Created variable house$large.res
+```{r, echo=FALSE}
+house$large.res <- house$stz.r > 2 | house$stz.r < -2
+```
+
+***
+#### **Que I : Use the appropriate function to show the sum of large residuals.**
+##### **Answer :** Sum of large residuals is `r sum(house$large.res)`, which is `r round(sum(house$large.res)/nrow(house) * 100, digits = 2)`% of total cases.
+
+***
+#### **Que J : Which specific variables have large residuals (only cases that evaluate as TRUE)?**
+##### **Answer :** As we determined we have total of `r sum(house$large.res)` rows with large residuals. All these cases are stored in a table and below is first 10 iteration of the table. 
+```{r, echo=FALSE}
+largeres.df <- house[house$large.res, c("Sale_Price", "sq_ft_lot", "square_feet_total_living", "year_built", "stz.r")]
+largeres.df[1:10,]
+```
+
+***
+#### **Que K : Investigate further by calculating the leverage, cooks distance, and covariance rations. Comment on all cases that are problematics.**
+##### **Answer :** 
+
+```{r, echo = FALSE, message=FALSE}
+largeres.df2 <- house[house$large.res, c("cooks", "leverage", "cov.ratio")]
+```
+
++ **Cooks Distance :** ANy value greater than 1 might be influencing the model. In our model we see only one below case which has cook distance greater than 1. 
+```{r, echo=FALSE, message=FALSE}
+subset(largeres.df2, cooks > 1)
+```
+
++ **Leverage :** Average leverage is calculated by formula `(k + 1/n)` = `(3+1/12865)` = `0.0003`. Cases greater than twice or thrice of average leverage value might be worth to look. However, cases with learge leverage values will not be necessarily haev a large influence on the regression coefficients because they are measure on the outcome variables rather than the predictors. For our model we have-
+  + `r nrow(subset(largeres.df2, leverage > 0.0003))` cases greater than 0.0003.
+  + `r nrow(subset(largeres.df2, leverage > 0.0006))` cases greater than 0.0006, 2 times average.
+  + `r nrow(subset(largeres.df2, leverage > 0.0009))` cases greater than 0.0009. 3 times average.
+  
+    
+    
++ **Covariance Ratio :** CVR upper limit is calculated y formula `1 + 3 times Average Leverage` = `1 + 3*0.0003` = `1.0009` and CVR lower limit is calculated by formula `1 - 3 times Average Leverage` = `1 - 3*0.0003` = `0.9991`. For our model we have `r nrow(subset(largeres.df2, cov.ratio < 0.9991 | cov.ratio > 1.0009))` case which are falling outside these limits my be problematic.
+  
+***
+#### **Que L : Perform the necessary calculations to assess the assumption of independence and state if the condition is met or not.**
+##### **Answer :** Assumption of independence error is calculated using the Durbin-Watson test. It was suggested that values less than 1 or greater than 3 should definitely raise alarm bells. D-W Statistic for our model is 0.56 which is less than 1. Which means condition is not met for our model.
+```{r, echo=FALSE}
+dwt(model.2)
+```
+
+***
+#### **Que M : Perform the necessary calculations to assess the assumption of no multicollinearity and state if the condition is met or not.**
+##### **Answer :** The VIF and tolerance statistics (with tolerance being 1 divided by VIF) are useful statistics to access collinearity.
++ VIF is
+```{r echo=FALSE}
+vif(model.2)
+```
++ Tolerance is
+```{r echo=FALSE}
+1/vif(model.2)
+```
++ Mean VIF is
+```{r, echo=FALSE}
+mean(vif(model.2))
+```
+  
+  For our model the VIF values are all well below 10 and the tolerance statistics all well above 0.2. Also, the average VIF is very close to 1. Based on these measures we can safely conclude that there is no collinearity within our data.
+  
+***
+#### **Que N : Visually check the assumptions related to the residuals using the plot() and hist() functions. Summarize what each graph is informing you of and if any anomalies are present.**
+##### **Answer :** Below are the graphs using plot() function. 
++ **Residual vs Fitted graph** forming a funnel shape and violates the assumption of homoscedasticity. This funnel shape is typical of heteroscedasticity and indicates increasing variance across the reiduals. Upper portion of model shows random distribution, which is the assumption of linearity. By this observation we can say that for our model heteroscedasticity, randomness and linearity have been met.
++ **Q-Q Plot** shows up the deviatioin from normality. Straight line represents normal distribution, and the points represent the observed residuals. In our model, the dots are very distant from the line(at the extremes), which indicates a deviation from normality(in this perticular case skew).
+  
+```{r, echo=FALSE}
+layout(matrix(c(1,2,3,4),2,2))
+plot(model.2)
+```
+  
+
+##### Below are the graphs using hist() function.
++ After loking into below distribution we can see deviation from normality at extremes. The bell curve shows normal distribution for most of the data, but due to extremes non-normality can be assumed. 
+
+```{r, echo=FALSE}
+hist(house$stz.r, freq=FALSE, main="Distribution of Studentized Residuals")
+xfit<-seq(min(house$stz.r),max(house$stz.r),length=100) 
+yfit<-dnorm(xfit) 
+lines(xfit, yfit)
+```
+ 
+#### **Que O : Overall, is this regression model unbiased? If an unbiased regression model, what does this tell us about the sample vs. the entire population model?**
+##### **Answer :** This regression model is not biased as mean of VIF[`r mean(vif(model.2))`] is not much higher than 1. 
+
+***
+#### End

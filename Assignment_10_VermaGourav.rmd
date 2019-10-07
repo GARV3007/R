@@ -1,0 +1,311 @@
+---
+title: "Suicide Rates Overview 1985 to 2015"
+subtitle: "DSC 520, Summer 2019, Final Project"
+author: 
+- Gourav Verma^[Bellevue University, Nebraska]
+affiliation: "Bellevue University, Nebraska"
+date: "Aug 8 2019"
+abstract: According to the WHO Suicides organization, 800,000 committed suicide in 2018. This means every 40 seconds a person dies by suicide. This number is fortunately dropping. In this project I am trying to explore the evolution of suicide rate using dataset extracted from Kaggle. This compiled dataset pulled from four other datasets linked by time and place, and was built to find signals correlated to increased suicide rates among different cohorts globally, across the socio-economic spectrum.Majority of the data used in this analysis is obtained from World Health Organization.
+output: 
+  html_document:h1b
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+# Important packages
+library(dplyr)
+library(countrycode)
+library(ggplot2)
+library(rworldmap)
+library(GGally)
+
+options(tinytex.verbose = TRUE)
+
+# Set directory
+setwd("C:/Users/f4puslg/Desktop/Garv/ML/Term 2 - R/Project")
+
+# 1) Import data
+suicide_raw <- read.csv("suicide.csv")
+suicide <- read.csv("suicide.csv")
+
+# 2) Data Cleaning
+
+# Removing HDI, suicide /100k and country.year column. Renamed some variables.
+suicide <- suicide %>%
+    select( -c("HDI.for.year", 'suicides.100k.pop', 'country.year')) %>%
+    rename(gdp_for_year = 'gdp_for_year....',
+           gdp_per_capita = 'gdp_per_capita....') %>%
+    as.data.frame()
+
+# remove data of year 2016
+suicide <- suicide %>%
+    filter(year != 2016)
+
+# Get countrywise, number of year's data present
+minimum_yr <- suicide %>%
+    group_by(country) %>%
+    summarize(rows = n(),
+              years = rows / 12) %>%
+    arrange(years)
+
+# remove countries for which data is present for less than 4 years
+suicide <- suicide %>%
+    filter(!(country %in% head(minimum_yr$country, 7)))
+
+# 3) Tidying Data
+
+# remove year text from age variable
+suicide$age <- gsub(" years", "", suicide$age)
+
+# getting continent information
+suicide$continent <- countrycode(sourcevar = suicide[, "country"],
+                                 origin = "country.name",
+                                 destination = "continent")
+
+# make continent factor
+suicide$continent <- factor(suicide$continent)
+
+# making age ordinal
+suicide$age <- factor(suicide$age,
+                      ordered = T,
+                      levels = c("5-14",
+                                 "15-24",
+                                 "25-34",
+                                 "35-54",
+                                 "55-74",
+                                 "75+"))
+
+# making generation ordinal
+suicide$generation <- factor(suicide$generation,
+                             ordered = T,
+                             levels = c("G.I. Generation",
+                                        "Silent",
+                                        "Boomers",
+                                        "Generation X",
+                                        "Millenials",
+                                        "Generation Z"))
+
+# making our data frame to tibble.(Tibble is a data frame providing a nicer printing method, useful when working with large data sets)
+# suicide <- as_tibble(suicide)
+
+# calculate global average
+
+s <- sum(as.numeric(suicide$suicides_no))
+p <- sum(as.numeric(suicide$population))
+global_avg <- s/p * 100000
+
+```
+
+***
+
+#### **Structure of cleaned dataset**
+Data cleaning notes
+  
++ 7 countries removed(<= 3 years of data total)
++ 2016 data was removed(few countries data was present and those did had data missing)
++ HDI variable was removed due to more than 50% data was missing.
++ Generation and Age variable looks similar. We will find our in analysis later, if Generation variable produces different outcome.
++ Created new variable 'continent' using countrycode package.
++ Tdying data includes changing format of variables and arranging the values to ordinal. 
+  
+    
+    
+  
+```{r}
+head(suicide)
+```
+
+***
+\newpage
+
+### **Geographical heat map**
+Below geographical heat map shows suicide rate for timeframe(1985-2015). **Grey area** shows lack of information for those countries, specially in **Africa and Asia**. TO get complete understanding of global trend we have limited data, but, we will continue with the data available. 
+  
+```{r, fig.height = 4.5, fig.width = 8, fig.align = "center", echo=FALSE, results = 'hide', warning=FALSE, message=FALSE}
+suicide %>%
+  group_by(country) %>%
+  summarize(sui_per_100k = (sum(as.numeric(suicides_no)) / sum(as.numeric(population))) * 100000) %>%
+joinCountryData2Map(joinCode = "NAME", nameJoinColumn = "country") %>%
+mapCountryData(
+nameColumnToPlot="sui_per_100k", 
+mapTitle="", 
+colourPalette = "heat", 
+oceanCol="lightblue", 
+missingCountryCol="grey65", 
+catMethod = "pretty") 
+
+```
+
+### **Global Analysis**
+  
+Below chart shows global trend of suicide rate per 100k population over the years. The dashed line is the **Global average suicide rate** from 1985-2015: **13.5 deaths** (per 100k, per year).
+
++ Peak Suicide rate was **15.3** deaths per 100k in **1995**.
++ Rates are now steadly decreasing and was **11.5** in **2015**.
+  
+  
+```{r, fig.height = 3, fig.width = 6, fig.align = "center", echo=FALSE}
+suicide %>%
+  group_by(year) %>%
+  summarize(pop_tot = sum(population),
+            sui_tot = sum(suicides_no),
+            sui_per_100k = (sui_tot / pop_tot) * 100000) %>%
+  ggplot(aes(x = year, y = sui_per_100k)) +
+  geom_line(col = "#CC0066", size = 1) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = global_avg, linetype = 2, size = 1) +
+  labs(title = "Global Suicides (per 100k)",
+       subtitle = "Trend over time, 1985 - 2015.",
+       x = "Year",
+       y = "Suicides per 100k") +
+  theme(plot.title = element_text(color="#993333", size = 10), plot.subtitle = element_text(size = 8)) +
+  scale_x_continuous(breaks = seq(1985, 2015, 2))
+
+```
+  
+\newpage
+  
+  
+### **Continent Trend**
+Below graph shows suicide rate variance over the time for different continents.
+  
++ **Europe has highest rate overall**, but steady decrease observed after 1995.
++ Europe rate is similar to Asia and Oceania in 2015.
++ **Oceania and American** trend is increasing over the time, which is concerning. 
+  
+  
+```{r, fig.height = 3, fig.width = 6, fig.align = "center", echo=FALSE}
+suicide %>%
+  group_by(year, continent) %>%
+  summarize(sui_per_100k = (sum(as.numeric(suicides_no)) / sum(as.numeric(population))) * 100000) %>%
+  ggplot(aes(x = year, y = sui_per_100k, col = factor(continent))) +
+  geom_line() +
+  geom_point() +
+  geom_hline(yintercept = global_avg, linetype = 2, size = 1) +
+  labs(title = "Trends over time, by Continent",
+       x = "Year",
+       y = "Suicides per 100k",
+       color = "continent") +
+  theme(plot.title = element_text(color="#993333", size = 10), plot.subtitle = element_text(size = 8)) +
+  scale_x_continuous(breaks = seq(1985, 2015, 5), minor_breaks = F)
+
+```
+
+  
+  
+### **Trend by Sex**
+  
++ Globally, the rate of suicide for men has been **~3.5x higher for men**.
++ Difference between male and female suicide rate might be affected by sex ratio.
+  
+  
+```{r, fig.height = 3, fig.width = 6, fig.align = "center", echo=FALSE}
+suicide %>%
+  group_by(year, sex) %>%
+  summarize(sui_per_100k = (sum(as.numeric(suicides_no)) / sum(as.numeric(population))) * 100000) %>%
+  ggplot(aes(x = year, y = sui_per_100k, col = factor(sex))) +
+  geom_line() +
+  geom_point() +
+  geom_hline(yintercept = global_avg, linetype = 2, size = 1) +
+  labs(title = "Trends over time, by Sex",
+       x = "Year",
+       y = "Suicides per 100k",
+       color = "sex") +
+  theme(plot.title = element_text(color="#993333", size = 10), plot.subtitle = element_text(size = 8)) +
+  scale_x_continuous(breaks = seq(1985, 2015, 5), minor_breaks = F)
+
+```
+
+\newpage
+
+### **Trend by Age**
+  
++ Suicide rate **increases with age**.
++ Rate of suicide is **highest** for age group **75+**.
++ Rate for age group 5-14 appears static.
+  
+  
+```{r, fig.height = 3, fig.width = 6, fig.align = "center", echo=FALSE}
+suicide %>%
+  group_by(year, age) %>%
+  summarize(sui_per_100k = (sum(as.numeric(suicides_no)) / sum(as.numeric(population))) * 100000) %>%
+  ggplot(aes(x = year, y = sui_per_100k, col = factor(age))) +
+  geom_line() +
+  geom_point() +
+  geom_hline(yintercept = global_avg, linetype = 2, size = 1) +
+  labs(title = "Trends over time, by Age",
+       x = "Year",
+       y = "Suicides per 100k",
+       color = "age") +
+  theme(plot.title = element_text(color="#993333", size = 10), plot.subtitle = element_text(size = 8)) +
+  scale_x_continuous(breaks = seq(1985, 2015, 5), minor_breaks = F)
+
+```
+  
+  
+### **United States Trend Analysis**
+  
+Below plot shows data from 2010 to 2015 of United States. Bar chart is plotted to differentiate between male and female suicide rates. 
+ 
++ US suicide rates for men continues to **increase with age**.
++ **Females** in US of age group **35-54** has higher suicide rate of **9 per 100k**.
+
+```{r, fig.height = 3.5, fig.width = 6, fig.align = "center", echo=FALSE}
+suicide %>%
+  filter(country == "United States", year >= 2010) %>%
+  group_by(country, sex, age) %>%
+  summarize(sui_per_100k = (sum(as.numeric(suicides_no)) / sum(as.numeric(population))) * 100000) %>%
+  ggplot(aes(x = age, y = sui_per_100k, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Age group trends in United States",
+       subtitle = "2010 - 2015 only",
+       x = "Age",
+       y = "Suicides per 100k",
+       fill = "Sex") +
+  theme(plot.title = element_text(color="#993333", size = 10), plot.subtitle = element_text(size = 8))
+
+```
+  
+
+\newpage
+
+### **How Suicide Rate is related to GDP of a Country?**
+Below is the correlation plot between GDP mean, Suicide rate per 100k and year, grouped by each country each year.
+  
++ It is evident that GDP of a country increases by year. Have strong correlation of **0.34**.
++ Correlation between suicide rate per 100k and GDP mean for acountry per year is very week, i.e. **0.06**.
++ We can say that we can't bulid an accurate predictive model for suicide rate based on GDP of a country. 
+
+```{r, echo=FALSE}
+options(scipen = 999)
+
+suicide %>%
+    group_by(country, year) %>%
+    summarise(suicide_per_100k = (sum(as.numeric(suicides_no)) / sum(as.numeric(population))) * 100000,
+              gdp_mean = mean(gdp_per_capita)) %>%
+    ggpairs(columns = c("suicide_per_100k", "gdp_mean", "year"),
+        upper = list(continuous = wrap("cor", size = 5)),
+        lower = list(continuous = "smooth"))
+
+```
+  
+    
+### **Conclusion**
+Suicide depends on many factors and can be caused in different scenarios. This analysis was done keeping suicide prevention as a motive. With the available data, we saw several trends. Most striking was to find high suicide rates among people with age group 75+. It's good that the global suicide rate is coming down. Globally Europe seems to have high suicide rates over the years, which is also coming down and became equivalent to Asia and America in 2015. On the other hand, America and Oceania have concerning trend of increasing suicide rate.There is huge difference between suicide rate of male and of female. Male seems to have 3.5x time suicide rate of female.  In the end, we also saw that there is a week relation between the richness of a country and its suicide rate. 
+
+    
+***
+  
+\newpage
+
+##### **References-**
++ GitHub. (2019). vincentarelbundock/countrycode. [online] Available at: https://github.com/vincentarelbundock/countrycode [Accessed 8 Aug. 2019].
++ Rusty. “Suicide Rates Overview 1985 to 2016.” Kaggle, 1 Dec. 2018, www.kaggle.com/russellyates88/suicide-rates-overview-1985-to-2016
++ United Nations Development Program. (2018). Human development index (HDI). Retrieved from http://hdr.undp.org/en/indicators/137506
++ World Bank. (2018). World development indicators: GDP (current US$) by country:1985 to 2016. Retrieved from http://databank.worldbank.org/data/source/world-development-indicators#
++ [Szamil]. (2017). Suicide in the Twenty-First Century [dataset]. Retrieved from https://www.kaggle.com/szamil/suicide-in-the-twenty-first-century/notebook
++ World Health Organization. (2018). Suicide prevention. Retrieved from http://www.who.int/mental_health/suicide-prevention/en/
+

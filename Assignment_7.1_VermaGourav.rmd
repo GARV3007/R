@@ -1,0 +1,64 @@
+---
+title: "Assignment 7.1 : Thoracic Surgery"
+author: "Gourav Verma"
+date: "July 20 2019"
+output: 
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+setwd("C:/Users/f4puslg/Desktop/Garv/ML/Term 2 - R/Assignments")
+library(GGally)
+library(ggplot2)
+library(ggm)
+library(QuantPsyc)
+library(car)
+library(foreign)
+library(caTools)
+options(scipen = 999)
+## Load the data
+ThSurg <- read.arff("ThoraricSurgery.arff")
+
+## Split the data into Training and Test
+split <- sample.split(ThSurg, SplitRatio = 0.8)
+
+## Training
+ThSurg.Tr <- subset(ThSurg, split == "TRUE")
+
+## Test
+ThSurg.Te <- subset(ThSurg, split == "FALSE")
+```
+
+***
+#### **Que a : Fit a binary logistic regression model to the data set that predicts whether or not the patient survived for one year (the *Risk1Y* variable) after the surgery. Use the glm() function to perform the logistic regression.**
+
+##### **Answer :** Please find below summary of the model.
+```{r}
+Model.1 <- glm(Risk1Yr ~ DGN + PRE9 + PRE14, data = ThSurg.Tr, family = binomial())
+```
+
+***
+#### **Que b : According to the summary, which variables had the greatest effect on the survival rate?**
+##### **Answer :** According to below summary size of original tumor(PRE14) and Dyspnoea before surgery(PRE9) has greatest effect on survival rate.
+```{r, echo=FALSE}
+summary(Model.1)
+```
+
+***
+#### **Que c : To compute the accuracy of your model, use the dataset to predict the outcome variable. The percent of correct predictions is the accuracy of your model. What is the accuracy of your model?**
+##### **Answer :** Confusion Matrix is shown below.
+```{r, echo=FALSE}
+## Regr <- predict(Model.1, type = "response")
+Regr <- predict.glm(Model.1, ThSurg.Tr, type = "response")
+confmatrix <- table(Actual_Value = ThSurg.Tr$Risk1Yr, Predicted_Value = Regr > 0.5)
+confmatrix
+```
+
+---
+**The accuracy of model is** `r (confmatrix[(1.1)] + confmatrix[(2.2)]) / sum(confmatrix)` or `r round((confmatrix[(1.1)] + confmatrix[(2.2)]) / sum(confmatrix) * 100, digit = 2)`%
+
+***
+**END**

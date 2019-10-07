@@ -1,0 +1,102 @@
+---
+title: 'Assignment 9.1 : Cleaning Data and Analysis'
+author: "Gourav Verma"
+date: "Aug 1 2019"
+output: 
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+***
+##### **1. Data importing and cleaning steps are explained in the text and in the DataCamp exercises.(Tell me why you are doing the data cleaning activities that you perform). Follow a logical process.**
+
+##### Majority of the data used in this analysis is obtained from World Health Organization. I used read.csv to import data into R.As we don't have complete information I followed below steps to clean the data.
+
+-- ***Data cleaning notes***
+
++ 7 countries removed(<= 3 years of data total)
++ 2016 data was removed(few countries data was present and those did had data missing)
++ HDI variable was removed due to more than 50% data was missing.
++ Generation and Age variable looks similar. We will find our in analysis later, if Generation variable produces different outcome. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+# Important packages
+library(dplyr)
+
+
+# Set directory
+setwd("C:/Users/f4puslg/Desktop/Garv/ML/Term 2 - R/Project")
+
+# Import data
+suicide_raw <- read.csv("suicide.csv")
+suicide <- read.csv("suicide.csv")
+
+# Data Cleaning
+
+# Removing HDI, suicide /100k and country.year column. Renamed some variables.
+suicide <- suicide %>%
+    select( -c("HDI.for.year", 'suicides.100k.pop', 'country.year')) %>%
+    rename(gdp_for_year = 'gdp_for_year....',
+           gdp_per_capita = 'gdp_per_capita....') %>%
+    as.data.frame()
+
+# remove data of year 2016
+suicide <- suicide %>%
+    filter(year != 2016)
+
+# Get countrywise, number of year's data present
+minimum_yr <- suicide %>%
+    group_by(country) %>%
+    summarize(rows = n(),
+              years = rows / 12) %>%
+    arrange(years)
+
+# remove countries for which data is present for less than 4 years
+suicide <- suicide %>%
+    filter(!(country %in% head(minimum_yr$country, 7)))
+
+```
+
+***
+##### **2. With a clean dataset, show what the final data set looks like. However, do not print off a data frame with 200+ rows; show me the data in the most condensed form possible.**
+
+```{r, echo=FALSE}
+head(suicide)
+```
+
+***
+##### **3. What do you not know how to do right now that you need to learn to import and cleanup your dataset?**
+##### I think I have covered most of the variables. Next, I need to learn how to divide contries according to continents. I also need to arrange the fator variables in sequence. 
+
+***
+##### **4. Discuss how you plan to uncover new information in the data that is not self-evident.**
+##### The data is spreaded across age group for each country each year, to standardize the analysis in need to group the data according to year, country, age group, continent. Need to generate formula to get rate of suicide for continent and age group.
+
+***
+##### **5. What are different ways you could look at this data to answer the questions you want to answer?**
+##### It will be more understandable for reader if data is shown in map. For comparing suicide rates, I need to account population of different age group and sex ratio. 
+
+***
+##### **6. Do you plan to slice and dice the data in different ways, create new variables, or join separate data frames to create new summary information? Explain.**
+##### Yes, I will be creating new suicide rate variable and continent variable, in order to get global trend.
+
+***
+##### **7. How could you summarize your data to answer key questions?**
+##### Plot between suicide rate and age group for each continent will provide the global variance.
+
+***
+##### **8. What types of plots and tables will help you to illustrate the findings to your questions? Ensure that all graph plots have axis titles, legend if necessary, scales are appropriate, appropriate geoms used, etc.).**
+##### For data representation I will using bar chart, line chart, scatter plot, graphical map.
+
+***
+##### **9. What do you not know how to do right now that you need to learn to answer your questions?**
+##### How to create graphical map, how to create heat map, how to find most risky trend. I need to learn different packages which will be useful to perform these tasks.
+
+***
+##### **10. Do you plan on incorporating any machine learning techniques to answer your research questions? Explain.**
+##### Yes, I will be analyzing the correlation between different variables and if possible I will be applying algorighms which can be useful to understand future trends. 
+
+***
+**END**

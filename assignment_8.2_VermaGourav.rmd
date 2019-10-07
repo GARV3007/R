@@ -1,0 +1,141 @@
+---
+title: 'Assignment 8.2 : Introduction to Machine Learning'
+author: "Gourav Verma"
+date: "July 27 2019"
+output: 
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+setwd("C:/Users/f4puslg/Desktop/Garv/ML/Term 2 - R/Assignments")
+
+# Load libraries
+library(QuantPsyc)
+library(car)
+library(caTools)
+library(class)
+library(caret)
+library(e1071)
+library(ggplot2)
+library(RColorBrewer)
+
+# Change scientific expressions
+options(scipen = 999)
+
+# Read the datasets
+binary <- read.csv("binary-classifier-data.csv")
+binary$label <- factor(binary$label)
+trinary <- read.csv("trinary-classifier-data.csv")
+trinary$label <- factor(trinary$label)
+
+```
+
+***
+#### **Question a : Plot the data from each dataset using a scatter plot.**
+##### **Answer :**
+```{r, echo=FALSE}
+
+# Set manual color scheme
+myColors <- brewer.pal(5, "Set1")
+names(myColors) <- levels(trinary$label)
+colScale <- scale_colour_manual(name = "grp", values = myColors)
+
+# COde for scatter plot
+p1 <- ggplot(binary, aes(x, y)) + 
+          geom_point(aes(color = label)) +
+          labs(title = "Scatter plot of Binary Classifier Data") + colScale
+p2 <- ggplot(trinary, aes(x, y)) + 
+          geom_point(aes(color = label)) +
+          labs(title = "Scatter plot of Trinary Classifier Data") + colScale
+p1
+p2
+```
+
+***
+#### **Question b : Fit a *k* nearest neighbors model for each dataset for *k=3, k=5, k=10, k=15, k=20, and k=25*. Compute the accuracy of the resulting models for each value of k. Plot the results in a graph where the x-axis is the different values of k and the y-axis is the accuracy of the model.**
+##### **Answer :** Below are the Accuracies for different values of *k* in Binary dataset. 
+```{r, echo=FALSE, warning=FALSE}
+set.seed(123)
+
+## Values of k in question
+set <- c(3, 5, 10, 15, 20, 25)
+
+## kNN models for Binary dataset
+
+Bsample <- sample(1:nrow(binary), size = nrow(binary) * 0.8, replace = FALSE)
+ 
+Bin.Trn <- binary[Bsample,]
+Bin.Tes <- binary[-Bsample,]
+ 
+## Creditability variable dataframe 
+Bin.Trn_labels <- binary[Bsample, 1]
+Bin.Tes_labels <- binary[-Bsample, 1]
+
+## Apply FOR loop to create KNN and get their accuracy, for all values in 'set' vector.
+i = 1
+k.Boptm = 1
+for (i in set){
+  knn.Bmod <- knn(train = Bin.Trn, test = Bin.Tes, cl = Bin.Trn_labels, k = i)
+  k.Boptm[i] <- 100 * sum(Bin.Tes_labels == knn.Bmod) / NROW(Bin.Tes_labels)
+  k = i
+  cat(k, '=', k.Boptm[i], '
+  ')
+}
+```
+
+---
+
+##### Below are the Accuracies for different values of *k* in Trinary dataset. 
+
+```{r, echo=FALSE, warning=FALSE}
+## kNN models for Trinary dataset
+
+Tsample <- sample(1:nrow(trinary), size = nrow(trinary) * 0.8, replace = FALSE)
+
+Trin.Trn <- trinary[Tsample,]
+Trin.Tes <- trinary[-Tsample,]
+
+## Creditability variable dataframe 
+Trin.Trn_labels <- trinary[Tsample, 1]
+Trin.Tes_labels <- trinary[-Tsample, 1]
+
+## Apply FOR loop to create KNN and get their accuracy, for all values in 'set' vector.
+i = 1
+k.Toptm = 1
+for (i in set){
+  knn.Tmod <- knn(train = Trin.Trn, test = Trin.Tes, cl = Trin.Trn_labels, k = i)
+  k.Toptm[i] <- 100 * sum(Trin.Tes_labels == knn.Tmod) / NROW(Trin.Tes_labels)
+  k = i
+  cat(k, '=', k.Toptm[i], '
+  ')
+}
+
+```
+
+---
+##### Plot for Accuracy matrix for both dataset is shown below.
+```{r, echo=FALSE}
+
+set.seed(1)
+df <- data.frame(k.Toptm = runif(100, min = 75, max = 100),
+                k.Boptm = runif(100, min = 75, max = 100),
+                x = rnorm(100))
+ylim <- with(df, range(k.Toptm, k.Boptm))
+
+plot(k.Toptm, type = 'b', pch = 20, col = "blue", ylim = ylim, geom = c("line", "point"), xlab = "k - Value", ylab = "Accuracy Level")
+points(k.Boptm, type = 'b', pch = 20, col = "red")
+legend("bottomleft", c("Binary", "Trinary"),
+      col = c("red", "blue"), pch = 19)
+```
+
+***
+#### **Question c : Looking back at the plots of the data, do you think a linear classifier would work well on these datasets?**
+##### **Answer :** I don't think linear classifier will work on these datasets. Decision boundaries between value 0, 1 and 2(in case of Trinary) is not linear. The pots cannot be divided into two pars based on values of label.
+
+***
+
+***
+**END**

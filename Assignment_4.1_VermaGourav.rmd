@@ -1,0 +1,113 @@
+---
+title: "Assignment 4.1 : Student Survey"
+author: "Gourav Verma"
+date: "June 27 2019"
+output: 
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo=FALSE, message=FALSE}
+setwd("C:/Users/f4puslg/Desktop/Garv/ML/Term 2 - R/Assignments")
+library(GGally)
+library(ggplot2)
+library(ggm)
+StdSurvey <- read.csv("student-survey.csv")
+```
+***
+#### **Que A : Use R to calculate the covariance of the Survey variables and provide an explanation of why you would use this calculation and what the results indicate?**
+##### **Answer :** Covariance measures how two variables move with respect to each other and is an extension of the concept of variance (which tells about how a single variable varies). It can take any value from -∞ to +∞. Higher this value, more dependent is the relationship. A positive number signifies positive covariance and denotes that there is a direct relationship. Effectively this means that an increase in one variable would also lead to a corresponding increase in the other variable provided other conditions remain constant.
+##### Looking into covariance matrix below(ignoring cov when x=y), covariance between **TimeTV and Happiness** is maximum **`r cov(StdSurvey$TimeTV, StdSurvey$Happiness)`**. Next, high -ve covariation we can see in between **TimeTV and TimeReading**. We can say total time spent watching TV is afftecting time spent in reading negatively. 
+```{r, echo=FALSE}
+StdCov <- cov(StdSurvey)
+StdCov
+```
+
+***
+#### **Que B : Examine the Survey data variables. What measurement is being used for the variables? Explain what effect changing the measurement being used for the variables would have on the covariance calculation. Would this be a problem? Explain and provide a better alternative if needed.**
+##### **Answer :** `TimeReading` and `TimeTV` are mesured in time, `Happiness` appears to be in `%`. Changing the values affects value of covariance. Covariance is not a standardized measure. With covariance we have problem with scale of measure and we cannot compare covariance in objective way. Hence, we cannot say whether a covarince is perticularly large or small relative to another data sets unless both data sets were measure in the same units. 
+##### To overcome problem of dependence on the measurement scale, we need to convert the covariance into standard set of units. By using *standard deviation* as a unit of measure we can calculate **correlation coefficient**.
+
+***
+#### **Que C : Choose the type of correlation test to perform, explain why you chose this test, and make a prediction if the test yields a positive or negative correlation?**
+##### **Answer :** I am choosing **pearson method** for correlation test. Fields seems to have linear relationship. *spearman* and *kendall* are used when we have to estimate a rank-based measure of association. It appears to be positive correlation between `TimeTV` and `Happiness`. Negative correlation can be assumed for `TimeReading` and `Happiness`.
+
+***
+#### **Que D : Perform a correlation analysis of:**
+##### **Que D.a : All variables**
+##### **Answer :** Please find below correlation for each pair of variables. Note that we have excluded `Gender` field from the calculation as it was a factor variable.
+* Correlation between `TimeReading` and `TimeTV` is `r cor(StdSurvey$TimeReading, StdSurvey$TimeTV)`.
+* Correlation between `TimeReading` and `Happiness` is `r cor(StdSurvey$TimeReading, StdSurvey$Happiness)`.
+* Correlation between `TimeReading` and `Gender` is `r cor(StdSurvey$TimeReading, StdSurvey$Gender)`.
+* Correlation between `TimeTV` and `Happiness` is `r cor(StdSurvey$TimeTV, StdSurvey$Happiness)`.
+* Correlation between `TimeTV` and `Gender` is `r cor(StdSurvey$TimeTV, StdSurvey$Gender)`.
+* Correlation between `Gender` and `Happiness` is `r cor(StdSurvey$Gender, StdSurvey$Happiness)`.
+\
+
+##### **Que D.b : A single correlation between two a pair of the variables**
+##### **Answer :** Correlation between `TimeTV` and `Happiness` is `r cor(StdSurvey$TimeTV, StdSurvey$Happiness)`. There is a significant relationship between time spent on watching TV and happiness, *r = .64, p = .035*
+Please find below correlation test between *TimeTV* and *Happiness*.
+```{r, echo=FALSE}
+cor.test(StdSurvey$TimeTV, StdSurvey$Happiness)
+```
+\  
+
+##### **Que D.c : Repeat your correlation test in step 2 but set the confidence interval at 99%**
+##### **Answer :** Correlation test between `TimeTV` and `Happiness` when confidence interval is 99%.
+```{r, echo=FALSE}
+cor.test(StdSurvey$TimeTV, StdSurvey$Happiness, conf.level = .99)
+```
+\
+
+##### **Que D.d : Describe what the calculations in the correlation matrix suggest about the relationship between the variables. Be specific with your explanation.**
+##### **Answer :** From below correlation matrix we can see that we have linear relationship between the varibles. Note that we have excluded `Gender` field from the calculation as it was a factor variable. It appears to be positive correlation between `TimeTV` and `Happiness`. There is negative correlation between `TImeReading` and `Happiness`. Student spending more time in watching TV are happier than students who are more reading. 
+```{r, echo=FALSE}
+ggpairs(StdSurvey, columns = c("TimeReading", "TimeTV", "Happiness"), 
+        upper = list(continuous = wrap("cor", size = 10)),
+        lower = list(continuous = "smooth"))
+```
+\
+
+***
+#### **Que E : Calculate the correlation coefficient and the coefficient of determination, describe what you conclude about the results.**
+##### **Answer :** The quantity r, called the linear *correlation coefficient*, measures the strength and the direction of a linear relationship between two variables. Correlation coefficient is calculated through `cor` function in R.
+##### Correlation between `TimeTV` and `Happiness` is `r cor(StdSurvey$TimeTV, StdSurvey$Happiness)`.
+\
+
+##### The *coefficient of determination*, r^2^, is useful because it gives the proportion of the variance (fluctuation) of one variable that is predictable from the other variable. 
+```{r, echo=FALSE}
+det.conf <- lm(StdSurvey$TimeTV ~ StdSurvey$Happiness, data = StdSurvey)
+R.sq <- summary(det.conf)$r.squared
+```
+##### Lets take relationship between `TimeTV` and `Happiness`. The R^2^ value for our linear model is `r R.sq`.
+
+***
+#### **Que F : Based on your analysis can you say that watching more TV caused students to read less? Explain.**
+##### **Answer :** Correlation between `TimeTV` and `TimeReading` is `r cor(StdSurvey$TimeReading, StdSurvey$TimeTV)`. 
+##### There is negative relationship between both variables and observing below plot, we can see that spending more time watching TV causes reduction in reading time.
+
+```{r, echo=FALSE}
+ggplot(StdSurvey, aes(TimeTV, TimeReading)) + geom_point() + geom_smooth(method = "lm", alpha = 0.1)
+```
+
+***
+#### **Que G : Pick three variables and perform a partial correlation, documenting which variable you are “controlling”. Explain how this changes your interpretation and explanation of the results.**
+##### **Answer :** I am choosing fields `TimeTV`, `TimeReading` and `Happiness`. Considering `TimeReading` as controlling variable.
+```{r, echo=FALSE}
+cor <- cor(StdSurvey$TimeTV, StdSurvey$Happiness)
+pcor <- pcor(c("TimeTV", "Happiness", "TimeReading"), var(StdSurvey))
+```
+* Correlation(r) between `TimeTV` and `Happiness` is `r cor`.
+* r^2^ is `r cor^2`.
+* Partial Correlation(R) is `r pcor`
+* R^2^ is `r pcor^2`
+
+##### We can see by controlling `TimeReading` correlation has dropped to 59% from 63%. And value of R^2^ shows that now TimeTV accounts for 35% of the variance in `Happiness`. Previously which was 40%.
+
+\
+
+
+#### **End**
+

@@ -1,0 +1,87 @@
+---
+title: 'Assignment 7.2 : Logistic Regression Model'
+author: "Gourav Verma"
+date: "July 20 2019"
+output: 
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+setwd("C:/Users/f4puslg/Desktop/Garv/ML/Term 2 - R/Assignments")
+library(QuantPsyc)
+library(car)
+library(caTools)
+library(class)
+library(caret)
+library(e1071)
+options(scipen = 999)
+binary <- read.csv("binary-classifier-data.csv")
+```
+***
+#### **Question a : What is the accuracy of the logistic regression classifier?**
+```{r, echo=FALSE}
+## SPlit the data into training and test
+split <- sample.split(binary, SplitRatio = 0.8)
+Bin.Tr <- subset(binary, split == "TRUE")
+Bin.Te <- subset(binary, split == "FALSE")
+
+## Create Model
+Bin.Mod <- glm(label ~ x + y, data = Bin.Tr, family = binomial())
+
+## Create regression
+Regs <- predict(Bin.Mod, type = "response")
+
+## Confusion Matrix
+confmatrix <- table(Actual_Value = Bin.Tr$label, Predicted_Value = Regs > 0.5)
+
+## Calculate Accuracy
+accu <- (confmatrix[(1.1)] + confmatrix[(2.2)]) / sum(confmatrix)
+```
+##### **Answer :** Below is the summary of the model and **Accuracy** is `r round(accu * 100, digit = 2)`%
+```{r, echo=FALSE}
+summary(Bin.Mod)
+```
+
+---
+#### **Question b : How does the accuracy of the logistic regression classifier compare to the nearest neighbors algorithm?**
+##### **Answer :** Creating kNN model. Our training dataset has total 1048 rows. Square root of 1048 is 32.37. Hence, creating below 2 kNN models for 'K' of 32 and 33
+```{r, echo=FALSE}
+## Create Train and Test dataset
+set.seed(123)
+sample <- sample(1:nrow(binary), size = nrow(binary) * 0.7, replace = FALSE)
+
+Bin.Trn <- binary[sample,]
+Bin.Tes <- binary[-sample,]
+
+## Creditability variable dataframe 
+Bin.Trn_labels <- binary[sample, 1]
+Bin.Tes_labels <- binary[-sample, 1]
+```
+```{r}
+kNN.32 <- knn(train = Bin.Trn, test = Bin.Tes, cl = Bin.Trn_labels, k = 32)
+kNN.33 <- knn(train = Bin.Trn, test = Bin.Tes, cl = Bin.Trn_labels, k = 33)
+```
+
++ For kNN.32, below confusion matrix shows Accuracy level of 97%, which is significantly greater than accuracy of logistic regression model.
+```{r, echo=FALSE}
+confusionMatrix(table(kNN.32, Bin.Tes_labels))
+```
+
++ For kNN.33, below confusion matrix shows Accuracy level of 97%, which is significantly greater than accuracy of logistic regression model.
+```{r, echo=FALSE}
+confusionMatrix(table(kNN.33, Bin.Tes_labels))
+```
+
+***
+#### **Question c : Why is the accuracy of the logistic regression classifier different from that of the nearest neighbors?**
+##### **Answer :** KNN is a distance based technique while Logistic regression is probability based. We cna consider below points to have difference in accuracy calculated by logistic and kNN.
++ KNN is a non-parametric model, where LR is a parametric model.
++ KNN is comparatively slower than Logistic Regression.
++ KNN supports non-linear solutions where LR supports only linear solutions.
++ LR can derive confidence level (about its prediction), whereas KNN can only output the labels.
+
+***
+**END**

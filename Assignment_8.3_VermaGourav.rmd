@@ -1,0 +1,93 @@
+---
+title: 'Assignment 8.3 : Clustering'
+author: "Gourav Verma"
+date: "July 27 2019"
+output: 
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+setwd("C:/Users/f4puslg/Desktop/Garv/ML/Term 2 - R/Assignments")
+
+# Load libraries
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(ggplot2)
+library(gridExtra)
+
+# Change scientific expressions
+options(scipen = 999)
+
+# Read the datasets
+cluster <- read.csv("clustering-data.csv")
+
+```
+
+***
+#### **Question a : Plot the dataset using a scatter plot.**
+##### **Answer :** Scatter Plot for Clustering dataset.
+```{r, echo=FALSE}
+ggplot(cluster, aes(x, y)) + 
+   geom_point()
+```
+
+***
+#### **Question b : Fit the dataset using the k-means algorithm from *k=2 to k=12*. Create a scatter plot of the resultant clusters for each value of k.**
+##### **Answer :**
+```{r, echo=FALSE}
+
+k2 <- kmeans(cluster, centers = 2, nstart = 25)
+k3 <- kmeans(cluster, centers = 3, nstart = 25)
+k4 <- kmeans(cluster, centers = 4, nstart = 25)
+k5 <- kmeans(cluster, centers = 5, nstart = 25)
+k6 <- kmeans(cluster, centers = 6, nstart = 25)
+k7 <- kmeans(cluster, centers = 7, nstart = 25)
+k8 <- kmeans(cluster, centers = 8, nstart = 25)
+k9 <- kmeans(cluster, centers = 9, nstart = 25)
+k10 <- kmeans(cluster, centers = 10, nstart = 25)
+k11 <- kmeans(cluster, centers = 11, nstart = 25)
+k12 <- kmeans(cluster, centers = 12, nstart = 25)
+
+p2 <- fviz_cluster(k2, geom = "point", data = cluster) + ggtitle("k = 2")
+p3 <- fviz_cluster(k3, geom = "point", data = cluster) + ggtitle("k = 3")
+p4 <- fviz_cluster(k4, geom = "point", data = cluster) + ggtitle("k = 4")
+p5 <- fviz_cluster(k5, geom = "point", data = cluster) + ggtitle("k = 5")
+p6 <- fviz_cluster(k6, geom = "point", data = cluster) + ggtitle("k = 6")
+p7 <- fviz_cluster(k7, geom = "point", data = cluster) + ggtitle("k = 7")
+p8 <- fviz_cluster(k8, geom = "point", data = cluster) + ggtitle("k = 8")
+p9 <- fviz_cluster(k9, geom = "point", data = cluster) + ggtitle("k = 9")
+p10 <- fviz_cluster(k10, geom = "point", data = cluster) + ggtitle("k = 10")
+p11 <- fviz_cluster(k11, geom = "point", data = cluster) + ggtitle("k = 11")
+p12 <- fviz_cluster(k12, geom = "point", data = cluster) + ggtitle("k = 12")
+
+p2
+p3
+p4
+p5
+p6
+p7
+p8
+p9
+p10
+p11
+p12
+
+```
+
+***
+#### **Question c : Calculate this average distance from the center of each cluster for each value of k and plot it as a line chart where k is the x-axis and the average distance is the y-axis.**
+##### **Answer :** 
+```{r, echo=FALSE}
+fviz_nbclust(cluster, kmeans, k.max = 12, method = "wss")
+```
+
+***
+#### **Question d : One way of determining the “right” number of clusters is to look at the graph of k versus average distance and finding the “elbow point”. Looking at the graph you generated in the previous example, what is the elbow point for this dataset?**
+##### **Answer :** **4** is the elbow point for this dataset.
+
+***
+**END**
